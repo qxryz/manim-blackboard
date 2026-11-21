@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Ten interactive lessons in geometry, physics, calculus, probability and machine learning. Open a lesson in English or with English and Chinese captions.">
+  <title>Lesson gallery · Manim Blackboard</title>
+  <style>
+:root {
+  color-scheme: dark;
+  --bg: #161715;
+  --ink: #f6f3e9;
+  --muted: #bcbfb3;
+  --line: #42453c;
+  --accent: #e9c88d;
+  font-family: "DM Sans", "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); }
+:lang(zh-CN) { font-family: "PingFang SC", "Microsoft YaHei", sans-serif; }
+main { max-width: 79rem; margin: auto; padding: 2rem clamp(1.25rem, 5vw, 5rem) 5rem; }
+header { border-bottom: 1px solid var(--line); padding-bottom: 2rem; }
+.brand { display: inline-flex; align-items: center; gap: .65rem; margin: 0; font-weight: 650; letter-spacing: -.02em; }
+.brand::before { content: ""; width: 1.15rem; height: .75rem; border: 2px solid var(--accent); transform: skew(-10deg); }
+h1, h2, h3, p { margin: 0; }
+h1, h3 { font-family: "STIX Two Text", Georgia, serif; font-weight: 400; }
+h1 { margin: 2.1rem 0 .7rem; font-size: clamp(2.9rem, 6vw, 5.7rem); line-height: 1; letter-spacing: -.055em; }
+h1 span { display: inline-block; font-size: .31em; letter-spacing: .015em; margin-left: .45em; color: var(--accent); }
+.hint { display: flex; flex-wrap: wrap; gap: .3rem .8rem; color: var(--muted); font-size: .92rem; line-height: 1.5; }
+section { margin-top: 2rem; }
+h2 { margin-bottom: 1rem; font-size: 1rem; font-weight: 650; }
+h2 span { color: var(--muted); font-size: .88em; font-weight: 400; margin-left: .5em; }
+ul { list-style: none; padding: 0; margin: 0; }
+.featured { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: clamp(.85rem, 2vw, 1.6rem); }
+li { position: relative; }
+.featured li { display: flex; flex-direction: column; }
+li img { display: block; width: 100%; height: auto; aspect-ratio: 5 / 3; object-fit: contain; background: #000; outline: 1px solid var(--line); outline-offset: -1px; }
+.featured .details { display: flex; flex: 1; flex-direction: column; align-items: flex-start; padding-top: 1rem; }
+h3 { font-size: clamp(1.3rem, 1.75vw, 1.7rem); line-height: 1.14; letter-spacing: -.02em; }
+h3 span { display: block; margin-top: .35rem; color: var(--muted); font-size: .85rem; font-weight: 400; line-height: 1.45; letter-spacing: normal; }
+.links { display: flex; flex-wrap: wrap; align-items: center; column-gap: 1.05rem; }
+.featured .links { margin-top: auto; padding-top: .35rem; }
+.links a { display: inline-flex; align-items: center; min-height: 44px; font-size: .85rem; color: var(--accent); text-decoration: underline; text-underline-offset: .28em; text-decoration-color: #7f745b; }
+.links a:first-child::after { content: ""; position: absolute; inset: 0; }
+.links a + a { position: relative; }
+li:has(.links a:first-child:hover) img { outline-color: var(--accent); }
+.links a:hover { color: var(--ink); text-decoration-color: currentColor; }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.catalogue { margin-top: 2.2rem; }
+.list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: clamp(2rem, 5vw, 5rem); }
+.list li { display: grid; grid-template-columns: 6rem minmax(0, 1fr); gap: 1rem; align-items: center; border-top: 1px solid var(--line); padding: .8rem 0; }
+.list .details { display: flex; justify-content: space-between; align-items: center; gap: .75rem; }
+.list h3 { font-size: 1.24rem; }
+.list .links { flex: none; gap: .85rem; }
+@media (max-width: 62rem) {
+  .featured { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 1.5rem; }
+  .list { grid-template-columns: 1fr; }
+}
+@media (max-width: 34rem) {
+  main { padding: 1.25rem 1.1rem 3rem; }
+  header { padding-bottom: 1.25rem; }
+  h1 { margin-top: 1.6rem; }
+  .hint { display: grid; gap: .05rem; }
+  .featured { gap: .9rem; }
+  .featured .details { padding-top: .65rem; }
+  .featured h3 { font-size: 1.14rem; }
+  h3 span { font-size: .77rem; }
+  .links { column-gap: .75rem; }
+  .list li { grid-template-columns: 5.25rem minmax(0, 1fr); gap: .8rem; }
+  .list .details { flex-direction: column; align-items: flex-start; gap: 0; }
+}
+@media (max-width: 23rem) {
+  .featured { grid-template-columns: 1fr; }
+}
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <p class="brand">Manim Blackboard</p>
+      <h1>Lesson gallery <span lang="zh-CN">课件集</span></h1>
+      <p class="hint">Click the board to advance one step.<span lang="zh-CN">点击黑板，逐步播放。</span></p>
+    </header>
+    <section>
+      <h2>New lessons <span lang="zh-CN">新课件</span></h2>
+      <ul class="featured">
+      <li>
+        <img src="the-third-side/preview.webp" alt="" width="640" height="384">
+        <div class="details">
+          <h3>The space diagonal of a box<span lang="zh-CN">长方体的空间对角线</span></h3>
+          <div class="links">
+            <a href="the-third-side/index.html" aria-label="The space diagonal of a box in English">English</a>
+            <a href="the-third-side/index.html#dual" lang="zh-CN" aria-label="长方体的空间对角线，中英字幕">中英字幕</a>
+          </div>
+        </div>
+      </li>
+      <li>
+        <img src="holonomy/preview.webp" alt="" width="640" height="384">
+        <div class="details">
+          <h3>Parallel transport on a sphere<span lang="zh-CN">球面上的平行移动</span></h3>
+          <div class="links">
+            <a href="holonomy/index.html" aria-label="Parallel transport on a sphere in English">English</a>
+            <a href="holonomy/index.html#dual" lang="zh-CN" aria-label="球面上的平行移动，中英字幕">中英字幕</a>
+          </div>
+        </div>
+      </li>
+      <li>
+        <img src="associate-family/preview.webp" alt="" width="640" height="384">
+        <div class="details">
+          <h3>From helicoid to catenoid<span lang="zh-CN">从螺旋面到悬链面</span></h3>
+          <div class="links">
+            <a href="associate-family/index.html" aria-label="From helicoid to catenoid in English">English</a>
+            <a href="associate-family/index.html#dual" lang="zh-CN" aria-label="从螺旋面到悬链面，中英字幕">中英字幕</a>
+          </div>
+        </div>
+      </li>
+      <li>
+        <img src="vortex-leapfrog/preview.webp" alt="" width="640" height="384">
+        <div class="details">
+          <h3>Leapfrogging vortex rings<span lang="zh-CN">交替穿行的涡环</span></h3>
+          <div class="links">
+            <a href="vortex-leapfrog/index.html" aria-label="Leapfrogging vortex rings in English">English</a>
+            <a href="vortex-leapfrog/index.html#dual" lang="zh-CN" aria-label="交替穿行的涡环，中英字幕">中英字幕</a>
+          </div>
+        </div>
+      </li>
+      </ul>
+    </section>
+    <section class="catalogue">
+      <h2>More lessons <span lang="zh-CN">更多课件</span></h2>
+      <ul class="list">
+      <li>
+        <img src="four-ball/preview.webp" alt="" width="640" height="384">
+        <div class="details">
+          <h3>Slicing a 4D ball<span lang="zh-CN">四维球切片</span></h3>
+          <div class="links">
+            <a href="four-ball/index.html" aria-label="Slicing a 4D ball in English">English</a>
+            <a href="four-ball/index.html#dual" lang="zh-CN" aria-label="四维球切片，中英字幕">中英字幕</a>
+          </div>
+        </div>
+      </li>
+      <li>
+        <img src="derivative/preview.webp" alt="" width="640" height="384">
+        <div class="details">
+          <h3>From secant to tangent<span lang="zh-CN">从割线到切线</span></h3>
+          <div class="links">
+            <a href="derivative/index.html" aria-label="From secant to tangent in English">English</a>
+            <a href="derivative/index.html#dual" lang="zh-CN" aria-label="从割线到切线，中英字幕">中英字幕</a>
+          </div>
+        </div>
+      </li>
+      <li>
+        <img src="unit-circle/preview.webp" alt="" width="640" height="384">
+        <div class="details">
+          <h3>The unit circle and sine<span lang="zh-CN">单位圆与正弦</span></h3>
+          <div class="links">
+            <a href="unit-circle/index.html" aria-label="The unit circle and sine in English">English</a>
+            <a href="unit-circle/index.html#dual" lang="zh-CN" aria-label="单位圆与正弦，中英字幕">中英字幕</a>
+          </div>
+        </div>
+      </li>
+      <li>
+        <img src="fourier/preview.webp" alt="" width="640" height="384">
+        <div class="details">
+          <h3>Building a square wave<span lang="zh-CN">用正弦波合成方波</span></h3>
+          <div class="links">
+            <a href="fourier/index.html" aria-label="Building a square wave in English">English</a>
+            <a href="fourier/index.html#dual" lang="zh-CN" aria-label="用正弦波合成方波，中英字幕">中英字幕</a>
+          </div>
+        </div>
+      </li>
+      <li>
+        <img src="bayes/preview.webp" alt="" width="640" height="384">
+        <div class="details">
+          <h3>Bayes and the base rate<span lang="zh-CN">贝叶斯与基准率</span></h3>
+          <div class="links">
+            <a href="bayes/index.html" aria-label="Bayes and the base rate in English">English</a>
+            <a href="bayes/index.html#dual" lang="zh-CN" aria-label="贝叶斯与基准率，中英字幕">中英字幕</a>
+          </div>
+        </div>
+      </li>
+      <li>
+        <img src="neural-network/preview.webp" alt="" width="640" height="384">
+        <div class="details">
+          <h3>A neural network by hand, from gradients to attention<span lang="zh-CN">手推神经网络与自注意力</span></h3>
+          <div class="links">
+            <a href="neural-network/index.html" aria-label="A neural network by hand, from gradients to attention in English">English</a>
+            <a href="neural-network/index.html#dual" lang="zh-CN" aria-label="手推神经网络与自注意力，中英字幕">中英字幕</a>
+          </div>
+        </div>
+      </li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>

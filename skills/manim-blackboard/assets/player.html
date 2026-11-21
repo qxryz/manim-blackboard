@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#000000">
+  <title>Blackboard</title>
+  <style>
+    :root { color-scheme: dark; background: #000; }
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; }
+    #stage {
+      min-height: 100dvh; padding-block-start: max(0px, (100dvh - 56.25vw) / 2); display: grid; justify-items: center; align-items: start;
+      background: #000; color: #f5f2eb; outline: none;
+      user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+      touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+    }
+    #board {
+      width: min(100vw, 177.7778vh); width: min(100vw, 177.7778dvh);
+      aspect-ratio: 16 / 9; container-type: inline-size;
+      display: grid; grid-template-rows: 78% minmax(22%, max-content); align-items: center;
+    }
+    #picture { width: 100%; height: 100%; display: block; overflow: hidden; }
+    #subtitles {
+      width: 92%; justify-self: center; text-align: center; align-self: start;
+      padding: 0 1% 1.2%; font: 400 2.15cqw/1.32 var(--bb-font);
+      text-wrap: balance;
+    }
+    #subtitles p { margin: 0; }
+    #secondary { color: #dedbd3; margin-top: .18em !important; }
+    #subtitles [lang|="zh"] {
+      font-family: var(--bb-font-zh);
+    }
+    #subtitles[data-dual="true"] { font-size: 1.8cqw; }
+    [hidden] { display: none !important; }
+    .sr-only {
+      position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden;
+      clip-path: inset(50%); white-space: nowrap;
+    }
+    @media (orientation: landscape) and (max-height: 500px),
+           (orientation: landscape) and (max-width: 840px) {
+      #board {
+        width: 100vw; height: min(100vh, 56.25vw); height: min(100dvh, 56.25vw);
+        grid-template-rows: minmax(0, 1fr) max(26%, 6rem);
+      }
+      #subtitles, #subtitles[data-dual="true"] {
+        width: 95%; padding: 0 max(.3em, env(safe-area-inset-right)) 0 max(.3em, env(safe-area-inset-left));
+        font-size: clamp(15px, 1.85vw, 19px); line-height: 1.25;
+      }
+    }
+    @media (orientation: portrait) {
+      #stage { padding-block-start: max(0px, (100dvh - 56.25vw - 9rem) / 2); }
+      #board { width: 100vw; aspect-ratio: auto; grid-template-rows: auto auto; }
+      #picture { aspect-ratio: 16 / 9; height: auto; }
+      #subtitles, #subtitles[data-dual="true"] {
+        font-size: clamp(15px, 3.85vw, 25px); padding: .7em 0 0; align-self: start;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main id="stage" tabindex="0" aria-describedby="controls">
+    <div id="board">
+      <svg id="picture" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="description" preserveAspectRatio="xMidYMid meet">
+        <desc id="description"></desc>
+        <g id="art" aria-hidden="true"></g>
+      </svg>
+      <div id="subtitles" aria-live="polite" aria-atomic="true">
+        <p id="primary"></p>
+        <p id="secondary" hidden></p>
+      </div>
+    </div>
+    <p class="sr-only" id="controls" lang="en">Press Space to advance, Left Arrow to go back, R to replay, F for full screen, or T for typefaces.<span id="language-help" hidden> Press L for bilingual captions.</span></p>
+    <noscript lang="en">Enable JavaScript to play this lesson.</noscript>
+  </main>
+  <!--BLACKBOARD_PLAYER_LICENSE-->
+  <!--BLACKBOARD_CAPTION_TRACK-->
+  <!--BLACKBOARD_TYPE-->
+  <script id="lesson" type="application/json"><!--BLACKBOARD_DATA--></script>
+  <script>
+/* player source */
+<!--BLACKBOARD_PLAYER-->
+  </script>
+</body>
+</html>

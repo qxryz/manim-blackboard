@@ -1,0 +1,166 @@
+<style>
+  @font-face {font-family:'STIX Two Text'; src:url('data:font/woff2;base64,{{STIXTwoText-Italic.woff2}}') format('woff2'); font-style:italic; font-weight:400; font-display:swap;}
+  @font-face {font-family:'Lora'; src:url('data:font/woff2;base64,{{Lora-Regular.woff2}}') format('woff2'); font-style:normal; font-weight:400; font-display:swap;}
+  @font-face {font-family:'Lora'; src:url('data:font/woff2;base64,{{Lora-Italic.woff2}}') format('woff2'); font-style:italic; font-weight:400; font-display:swap;}
+  @font-face {font-family:'Public Sans'; src:url('data:font/woff2;base64,{{PublicSans-Regular.woff2}}') format('woff2'); font-style:normal; font-weight:400; font-display:swap;}
+  @font-face {font-family:'Public Sans'; src:url('data:font/woff2;base64,{{PublicSans-Italic.woff2}}') format('woff2'); font-style:italic; font-weight:400; font-display:swap;}
+  @font-face {font-family:'JetBrains Mono'; src:url('data:font/woff2;base64,{{JetBrainsMono-Regular.woff2}}') format('woff2'); font-style:normal; font-weight:400; font-display:swap;}
+  @font-face {font-family:'JetBrains Mono'; src:url('data:font/woff2;base64,{{JetBrainsMono-Italic.woff2}}') format('woff2'); font-style:italic; font-weight:400; font-display:swap;}
+  @font-face {font-family:'Blackboard Song'; src:url('data:font/woff2;base64,{{blackboard-cjk-serif.woff2}}') format('woff2'); font-style:normal; font-weight:400; font-display:swap;}
+  @font-face {font-family:'Blackboard Hei'; src:url('data:font/woff2;base64,{{blackboard-cjk-sans.woff2}}') format('woff2'); font-style:normal; font-weight:400; font-display:swap;}
+  @font-face {font-family:'Blackboard Kai'; src:url('data:font/woff2;base64,{{blackboard-cjk-kai.woff2}}') format('woff2'); font-style:normal; font-weight:400; font-display:swap;}
+  /* Font notices distributed with this page.
+  {{stix-two-text-OFL.txt}}
+  {{lora-OFL.txt}}
+  {{public-sans-OFL.txt}}
+  {{jetbrains-mono-OFL.txt}}
+  {{blackboard-cjk-kai-OFL.txt}}
+  {{blackboard-cjk-sans-OFL.txt}}
+  {{blackboard-cjk-serif-OFL.txt}}
+  */
+  :root {
+    --bb-classic:Georgia, 'Times New Roman', serif;
+    --bb-classic-zh:'Kaiti SC', KaiTi, 'Songti SC', 'Noto Serif CJK SC', 'Microsoft JhengHei', 'Blackboard Kai', serif;
+    --bb-classic-figure:'STIX Two Text', 'Kaiti SC', KaiTi, 'Blackboard Kai', Georgia, serif;
+    --bb-serif:'Lora', 'Blackboard Song', Georgia, serif;
+    --bb-sans:'Public Sans', 'Blackboard Hei', 'Segoe UI', Arial, sans-serif;
+    --bb-mono:'JetBrains Mono', 'Blackboard Kai', ui-monospace, Consolas, monospace;
+    --bb-font:var(--bb-classic);
+    --bb-font-zh:var(--bb-classic-zh);
+  }
+  :root[data-bb-typeface='classic'] :is(#lesson-title,#plot,#readout,#annotation,.bb-plot-host) {
+    --bb-font:var(--bb-classic-figure);
+    font-family:var(--bb-font);
+    font-style:italic;
+  }
+  :root[data-bb-typeface='classic'] [lang|='zh'] {font-style:normal;}
+  :root[data-bb-typeface='serif'] {
+    --bb-font:var(--bb-serif);
+    --bb-font-zh:'Lora', 'Blackboard Song', 'Songti SC', SimSun, 'Noto Serif CJK SC', serif;
+  }
+  :root[data-bb-typeface='sans'] {
+    --bb-font:var(--bb-sans);
+    --bb-font-zh:'Public Sans', 'Blackboard Hei', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif;
+  }
+  :root[data-bb-typeface='mono'] {
+    --bb-font:var(--bb-mono);
+    --bb-font-zh:'JetBrains Mono', 'Blackboard Kai', 'Noto Sans Mono CJK SC', 'Sarasa Mono SC', 'PingFang SC', 'Microsoft YaHei', monospace;
+  }
+  #bb-type-trigger, #bb-type-dialog {
+    position:fixed; inset:auto; top:max(.3rem, env(safe-area-inset-top)); right:max(.5rem, env(safe-area-inset-right));
+    z-index:10; color:#e7e3dc; background:#000; box-sizing:border-box;
+  }
+  #bb-type-trigger {
+    display:grid; place-items:center; width:44px; height:44px; padding:0; margin:0;
+    color:#c8c6c0; border:0; border-radius:0; background:transparent;
+    opacity:0; font:400 18px/1 var(--bb-font); cursor:pointer; touch-action:manipulation;
+    transition:opacity .18s;
+  }
+  #bb-type-trigger:hover, #bb-type-trigger:focus-visible, #bb-type-trigger[data-revealed] {opacity:1;}
+  #bb-type-trigger:focus-visible, #bb-type-dialog button:focus-visible, #bb-type-dialog label:has(input:focus-visible) {outline:2px solid #e9e6df; outline-offset:1px;}
+  #bb-type-dialog {
+    margin:0; width:min(282px,calc(100vw - 1rem)); max-height:calc(100dvh - 1rem); overflow:auto;
+    padding:16px; border:1px solid #696964; border-radius:4px;
+    font:400 16px/1.25 var(--bb-sans); user-select:none; touch-action:manipulation;
+  }
+  #bb-type-dialog::backdrop {background:transparent;}
+  #bb-type-dialog fieldset {margin:0; padding:0; border:0; min-width:0;}
+  #bb-type-dialog legend {padding:0; margin:0 0 8px; color:#b6b4ac; font:inherit;}
+  #bb-type-dialog label {display:flex; align-items:center; gap:10px; min-height:44px; padding:3px 5px; cursor:pointer;}
+  #bb-type-dialog input {width:16px; height:16px; margin:0; padding:0; accent-color:#b2e3d7; flex:none;}
+  #bb-type-dialog label span {margin-left:auto; white-space:nowrap; font-size:.85em;}
+  #bb-type-dialog label span[lang|='zh'] {font-family:var(--preview-zh);font-style:normal;}
+  #bb-type-dialog label:has(:checked) {color:#b2e3d7;}
+  #bb-type-dialog button {min-height:36px; padding:3px 6px; margin:8px 0 0; border:0; background:transparent; color:inherit; font:inherit; cursor:pointer;}
+  #bb-type-dialog [lang|='zh'] {font-family:var(--bb-font-zh);}
+  @media (prefers-reduced-motion:reduce) {#bb-type-trigger {transition:none;}}
+</style>
+<button id="bb-type-trigger" type="button" aria-label="Choose typeface" aria-haspopup="dialog" aria-controls="bb-type-dialog" aria-expanded="false" aria-keyshortcuts="T" title="Choose typeface (T)">Aa</button>
+<dialog id="bb-type-dialog" aria-labelledby="bb-type-title">
+  <fieldset>
+    <legend id="bb-type-title">Typeface<span lang="zh-Hans" hidden> · 字体</span></legend>
+    <label style="font-family:var(--bb-classic-figure);font-style:italic;--preview-zh:var(--bb-classic-zh)"><input type="radio" name="bb-type" value="classic" checked>Classic<span lang="zh-Hans" hidden>楷体</span></label>
+    <label style="font-family:var(--bb-serif);--preview-zh:'Blackboard Song',serif"><input type="radio" name="bb-type" value="serif">Lora<span lang="zh-Hans" hidden>宋体</span></label>
+    <label style="font-family:var(--bb-sans);--preview-zh:'Blackboard Hei',sans-serif"><input type="radio" name="bb-type" value="sans">Public Sans<span lang="zh-Hans" hidden>黑体</span></label>
+    <label style="font-family:var(--bb-mono);--preview-zh:'Blackboard Kai',monospace"><input type="radio" name="bb-type" value="mono">JetBrains Mono<span lang="zh-Hans" hidden>楷体</span></label>
+  </fieldset>
+  <button type="button">Done<span lang="zh-Hans" hidden> · 完成</span></button>
+</dialog>
+<script>
+(() => {
+  const root = document.documentElement;
+  const trigger = document.getElementById('bb-type-trigger');
+  const dialog = document.getElementById('bb-type-dialog');
+  const radios = Array.from(dialog.querySelectorAll('input'));
+  const preference = 'manim-blackboard.typeface';
+  let fadeTimer;
+  let opener;
+  let pointerOpened = false;
+  function reveal() {
+    trigger.setAttribute('data-revealed', '');
+    clearTimeout(fadeTimer);
+    fadeTimer = setTimeout(() => trigger.removeAttribute('data-revealed'), 2100);
+  }
+  function apply(value) {
+    const radio = radios.find(input => input.value === value) || radios[0];
+    radio.checked = true;
+    root.dataset.bbTypeface = radio.value;
+    window.dispatchEvent(new Event('bb-typefacechange'));
+  }
+  let saved;
+  try {saved = localStorage.getItem(preference);} catch { /* Local files can have storage disabled. */ }
+  apply(saved);
+  window.addEventListener('storage', event => {
+    if (event.key === preference || event.key === null) apply(event.newValue);
+  });
+  dialog.addEventListener('change', event => {
+    if (!radios.includes(event.target)) return;
+    apply(event.target.value);
+    try {localStorage.setItem(preference, event.target.value);} catch { /* Keep the session choice. */ }
+  });
+  function open(event) {
+    opener = document.activeElement;
+    pointerOpened = event?.type === 'click' && event.detail > 0;
+    for (const item of dialog.querySelectorAll('[lang|="zh"]')) item.hidden = document.body.dataset.bilingual !== 'true';
+    dialog.showModal();
+    trigger.setAttribute('aria-expanded','true');
+    dialog.querySelector(':checked').focus();
+  }
+  function close() {
+    dialog.close();
+    trigger.setAttribute('aria-expanded','false');
+    if (pointerOpened || opener === document.body) {
+      if (dialog.contains(document.activeElement) || document.activeElement === trigger) document.activeElement.blur();
+    } else if (opener?.isConnected) {
+      opener.focus({preventScroll:true});
+    }
+  }
+  dialog.addEventListener('cancel', event => {event.preventDefault(); close();});
+  trigger.addEventListener('click', open);
+  dialog.querySelector('button').addEventListener('click', close);
+  dialog.addEventListener('click', event => {
+    if (event.target !== dialog) return;
+    const rect = dialog.getBoundingClientRect();
+    if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) close();
+  });
+  window.addEventListener('keydown', event => {
+    if (!dialog.open && event.target instanceof Element && event.target.closest('dialog[open]')) return;
+    const plain = !event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey && !event.isComposing;
+    const typing = event.target instanceof Element && (event.target.matches('input:not([type=radio]):not([type=checkbox]):not([type=range]), textarea, select') || event.target.isContentEditable);
+    if (plain && !typing && event.key.toLowerCase() === 't') {
+      event.preventDefault(); event.stopPropagation();
+      if (!event.repeat) dialog.open ? close() : open();
+    } else if (plain && dialog.open && event.key === 'Escape') {
+      event.preventDefault(); event.stopPropagation(); close();
+    } else if (dialog.open || event.target === trigger && [' ', 'Enter'].includes(event.key)) {
+      // Preserve native radio and tab behavior without sending the key to the lesson.
+      event.stopPropagation();
+    }
+  }, true);
+  window.addEventListener('pointermove', event => {
+    if (!event.buttons && event.pointerType === 'mouse' && event.clientY < 70 && innerWidth - event.clientX < 95) reveal();
+  }, {passive:true});
+  window.addEventListener('pointerup', event => {if (event.pointerType === 'touch') reveal();}, {passive:true});
+  if (matchMedia('(hover:none)').matches) reveal();
+})();
+</script>

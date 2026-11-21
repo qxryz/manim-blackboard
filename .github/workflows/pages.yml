@@ -1,0 +1,61 @@
+name: Deploy examples to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Collect the gallery and lessons
+        run: |
+          site="$RUNNER_TEMP/pages"
+          mkdir -p "$site/examples"
+          cp LICENSE "$site/"
+          cp examples/index.html "$site/examples/"
+          for page in examples/*/index.html; do
+            lesson="${page%/index.html}"
+            mkdir -p "$site/$lesson"
+            cp "$page" "$lesson/preview.webp" "$site/$lesson/"
+          done
+          cat > "$site/index.html" <<'HTML'
+          <!doctype html>
+          <html lang="en">
+          <meta charset="utf-8">
+          <meta http-equiv="refresh" content="0; url=./examples/">
+          <title>Manim Blackboard</title>
+          <a href="./examples/">Open the example gallery</a>
+          </html>
+          HTML
+
+      - uses: actions/upload-pages-artifact@v5.0.0
+        with:
+          path: ${{ runner.temp }}/pages
+
+  deploy:
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5.0.1

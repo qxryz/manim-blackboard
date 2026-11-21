@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#000000">
+  <title>Blackboard</title>
+  <style>
+    :root { color-scheme: dark; background: #000; color: #f4f1e9; scrollbar-gutter: stable; }
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; font-family: var(--bb-font, Georgia, serif); }
+    [lang|="zh"] { font-family: var(--bb-font-zh, serif); }
+    [hidden] { display: none !important; }
+    #stage {
+      min-height: 100vh; min-height: 100dvh; padding: clamp(18px, 9dvh, 90px) max(4vw, env(safe-area-inset-right)) clamp(20px, 4vh, 52px) max(4vw, env(safe-area-inset-left));
+      display: grid; justify-items: center; align-items: start; outline: none; touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none;
+    }
+    /* Start the diagram, working and captions on independent rows. Oversized
+       lessons can extend the document without clipping lines at large zoom. */
+    #board {
+      width: min(100%, 1480px); display: grid;
+      grid-template-columns: minmax(0, 1fr);
+    }
+    #scene {
+      display: grid; grid-template-columns: minmax(0, 1.44fr) minmax(0, 1fr);
+      min-height: 65dvh; gap: clamp(16px, 4vw, 72px); align-items: center;
+    }
+    #plot { display: block; width: 100%; height: auto; max-height: 67vh; max-height: 67dvh; overflow: visible; font-family: var(--bb-font, Georgia, serif); }
+    #plot[data-interact], #plot [data-interact] { touch-action: none; }
+    #notes { min-width: 0; align-self: start; padding-top: min(8dvh, 5rem); container-type: inline-size; }
+    #lesson-title { margin: 0 0 .52em; font: inherit; font-size: clamp(30px, 11cqw, 70px); line-height: 1.04; letter-spacing: -.028em; text-wrap: balance; }
+    #readout { font-size: clamp(18px, 5.4cqw, 32px); line-height: 1.34; }
+    #readout :is(sub, sup) { line-height: 0; }
+    #scene-controls { display: grid; gap: .55em; margin-top: 1.18em; font-size: clamp(16px, 4.6cqw, 22px); }
+    #scene-controls:empty { display: none; }
+    :where(#scene-controls) :where(button, input, select) { font: inherit; color: inherit; accent-color: #83d8c9; }
+    :where(#scene-controls) :where(button, select) { background: #080808; border: 1px solid #59615f; border-radius: .24em; padding: .24em .58em; }
+    :where(#scene-controls) button { cursor: pointer; }
+    :where(#scene-controls) button[aria-pressed="true"] { border-color: #83d8c9; color: #9be9d9; }
+    #stage :focus-visible { outline: 2px solid #c6d8e0; outline-offset: 3px; }
+    #subtitles { align-self: start; width: min(96%, 1180px); margin: clamp(18px, 3vh, 44px) auto 0; text-align: center; font-size: clamp(16px, 2vw, 34px); line-height: 1.34; text-wrap: balance; overflow-wrap: anywhere; }
+    #subtitles p { margin: 0; }
+    #subtitles[data-dual="true"] { font-size: clamp(15px, 1.62vw, 27px); }
+    #secondary { color: #d4d0c8; padding-top: .22em; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    @media (max-aspect-ratio: 1/1) {
+      /* The notes and controls wrap below the figure on a phone. Anchor the
+         first row to the viewport and let every subsequent row grow downward. */
+      #stage { align-items: start; padding: max(clamp(14px, 5dvh, 48px), env(safe-area-inset-top)) max(4vw, env(safe-area-inset-right)) max(22px, env(safe-area-inset-bottom)) max(4vw, env(safe-area-inset-left)); }
+      #board { grid-template-rows: auto auto; }
+      #scene { min-height: 0; grid-template-columns: 1fr; gap: clamp(6px, 2vh, 24px); }
+      #plot { max-height: 43dvh; }
+      #notes { width: min(100%, 580px); min-height: max(13.5rem, 28dvh); padding: 0; margin: 0 auto; }
+      #lesson-title { font-size: clamp(27px, 8.3cqw, 48px); margin-bottom: .28em; }
+      #readout { font-size: clamp(17px, 4.9cqw, 25px); }
+      #scene-controls { margin-top: .7em; font-size: clamp(15px, 4.3cqw, 21px); }
+      #subtitles, #subtitles[data-dual="true"] { width: 100%; font-size: clamp(15px, 3.8vw, 24px); }
+    }
+    @media (orientation: landscape) and (max-height: 520px) {
+      #notes { padding-top: 0; }
+      #stage { padding: 11px 3vw 10px; }
+      #scene { min-height: 74dvh; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 2.4vw; }
+      #plot { max-height: 71dvh; }
+      #lesson-title { font-size: clamp(20px, 8.3cqw, 35px); margin-bottom: .3em; }
+      #readout { font-size: clamp(15px, 4.45cqw, 21px); }
+      #scene-controls { font-size: 14px; margin-top: .5em; gap: .32em; }
+      #subtitles, #subtitles[data-dual="true"] { width: 100%; margin-top: 10px; font-size: clamp(14px, 2.2vw, 19px); }
+    }
+  </style>
+</head>
+<body>
+  <main id="stage" tabindex="-1" aria-labelledby="lesson-title" aria-describedby="help">
+    <div id="board">
+      <div id="scene">
+        <svg id="plot" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 430" role="group" aria-labelledby="lesson-title" aria-describedby="primary"></svg>
+        <div id="notes">
+          <h1 id="lesson-title"></h1>
+          <div id="readout"></div>
+          <div id="scene-controls"></div>
+        </div>
+      </div>
+      <div id="subtitles" aria-live="polite" aria-atomic="true"><p id="primary"></p><p id="secondary" hidden></p></div>
+    </div>
+    <p id="help" class="sr-only" lang="en">Click the background or press Space to advance. Left Arrow goes back. R replays and F opens full screen. Press Escape to leave a control.<span id="language-help" hidden> Press L or hold the background to toggle the translation.</span></p>
+    <noscript>Enable JavaScript to open this lesson.</noscript>
+  </main>
+  <!--BLACKBOARD_CAPTION_TRACK-->
+  <!--BLACKBOARD_TYPE-->
+  <!--INTERACTIVE_PLAYER_BUNDLE-->
+</body>
+</html>

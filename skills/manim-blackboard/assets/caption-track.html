@@ -1,0 +1,28 @@
+<style>
+  #subtitles { display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; overflow-wrap: anywhere; }
+  #subtitles #primary, #subtitles .bb-line-guide { grid-area: 1 / 1; align-self: start; }
+  #subtitles #secondary { grid-area: 2 / 1; }
+  .bb-line-guide { display: grid; visibility: hidden; pointer-events: none; }
+  .bb-line-guide > span { grid-area: 1 / 1; }
+  #subtitles:not([data-dual='true']) .bb-line-guide { display: none; }
+</style>
+<script>
+  function makeBlackboardLineGuide(lines) {
+    // Overlapping copies give the translation an exact baseline for this font
+    // and width. The browser rewraps them on resize and typeface changes.
+    const guide = document.createElement('div');
+    guide.className = 'bb-line-guide';
+    guide.setAttribute('aria-hidden', 'true');
+    for (const text of new Set(lines)) {
+      const span = document.createElement('span');
+      span.textContent = text;
+      guide.append(span);
+    }
+    return guide;
+  }
+  function reservePrimaryCaption(lines) {
+    const guide = makeBlackboardLineGuide(lines);
+    guide.lang = document.getElementById('primary').lang;
+    document.getElementById('subtitles').append(guide);
+  }
+</script>
