@@ -10,13 +10,18 @@ Manim Blackboard 是一项可安装到 AI 编程助手里的技能（skill），
 请从 https://github.com/qxryz/manim-blackboard 把 manim-blackboard 技能安装到当前项目，并验证你能在这个项目里调用它。
 ```
 
-也可以在项目目录里手动运行安装命令。
+手动安装需要 Git 和 Node.js 20 或更新版本。在项目目录运行下面两条命令，目标目录可换成助手使用的技能目录。
 
 ```sh
-npx skills add qxryz/manim-blackboard --skill manim-blackboard
+git clone https://github.com/qxryz/manim-blackboard.git
+node manim-blackboard/scripts/install.mjs --target .agents/skills/manim-blackboard
 ```
 
-按提示选择助手，然后试试这段提示词。
+更新时先运行 `git -C manim-blackboard pull --ff-only`，再运行同一条安装命令。安装器先显示检测范围和安装路径，复用现有工具，将缺少的依赖装在技能目录的 `.manim-blackboard/` 下。每次都会生成 `.manim-blackboard/install-report.md`，列出版本、实际路径和复用结果。
+
+复原时关闭正在运行的构建器。在安装目录双击 Windows 的 `restore.cmd` 或 macOS 的 `restore.command`。Linux 可运行 `./restore.command`。复原会删除技能私有依赖，并撤销最近一次改变技能文件的托管安装或更新。[安装模式与复原范围](skills/manim-blackboard/references/setup.md)
+
+试试这段提示词。
 
 > 用 Manim Blackboard 解释前 n 个奇数之和为什么等于 n²。从一块方砖开始，每次点击都在正方形外侧添上一条 L 形砖带，配上中英字幕。
 

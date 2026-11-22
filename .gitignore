@@ -2,6 +2,8 @@
 __pycache__/
 *.py[cod]
 .venv/
+.manim-blackboard/
+.manim-blackboard-install.lock
 node_modules/
 .env
 .env.*

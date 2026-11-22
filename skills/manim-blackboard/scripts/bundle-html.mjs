@@ -3,31 +3,44 @@ import { mkdir, mkdtemp, readFile, realpath, rename, rm, stat, writeFile } from 
 import { dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
+import { announceJsRuntime, ensureEsbuild, ensureThree } from './js-runtime.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 
 async function bundledPlayer(source, mode) {
-  let build;
-  try {
-    ({ build } = await import('esbuild'));
-  } catch (error) {
-    if (error.code !== 'ERR_MODULE_NOT_FOUND') throw error;
-    throw new Error('Install the JavaScript build dependencies with npm ci in the skill directory.');
-  }
-  // Installed lessons can live anywhere. Resolve shared helpers and Three.js against this skill.
-  const alias = { 'blackboard-lesson': source, 'blackboard-deck': join(root, 'assets/deck.js'), three: 'three' };
+  await announceJsRuntime(mode);
+  const build = await ensureEsbuild(source);
+  let threeRuntime;
+  if (mode === 'three') threeRuntime = Promise.resolve(await ensureThree(build, source));
+  const checked = Symbol('three resolution');
+  const threePlugin = {
+    name: 'blackboard-three',
+    setup(api) {
+      api.onResolve({ filter: /^three(?:\/|$)/ }, async args => {
+        if (args.pluginData === checked) return;
+        threeRuntime ??= ensureThree(build, source);
+        const { resolveDir } = await threeRuntime;
+        const { pluginData, ...result } = await api.resolve(args.path, {
+          kind: args.kind, resolveDir, pluginData: checked,
+        });
+        return result;
+      });
+    },
+  };
+  const alias = { 'blackboard-lesson': source, 'blackboard-deck': join(root, 'assets/deck.js') };
   const result = await build({
-    absWorkingDir: root, entryPoints: [`assets/${mode}-player.js`], alias,
-    bundle: true, write: false, metafile: true, platform: 'browser', format: 'iife', target: 'es2020',
+    absWorkingDir: root, entryPoints: [`assets/${mode}-player.js`], alias, plugins: [threePlugin],
+    bundle: true, write: false, platform: 'browser', format: 'iife', target: 'es2020',
     minify: true, legalComments: 'inline', logLevel: 'silent',
   });
   if (result.outputFiles.length !== 1) throw new Error('The lesson must bundle into one script.');
-  const notices = [['Manim Blackboard built-in player', 'LICENSE']];
-  if (Object.keys(result.metafile.inputs).some(path => path.replaceAll('\\', '/').includes('node_modules/three/'))) {
-    notices.push(['Three.js', 'node_modules/three/LICENSE'], ['Three.js components', 'licenses/three-components.txt']);
+  const notices = [['Manim Blackboard built-in player', readFile(join(root, 'LICENSE'), 'utf8')]];
+  if (threeRuntime) {
+    notices.push(['Three.js', (await threeRuntime).license],
+      ['Three.js components', readFile(join(root, 'licenses/three-components.txt'), 'utf8')]);
   }
-  const licenseTags = await Promise.all(notices.map(async ([component, file]) => {
-    const license = await readFile(join(root, file), 'utf8');
+  const licenseTags = await Promise.all(notices.map(async ([component, content]) => {
+    const license = await content;
     const text = license.replaceAll('&', '&amp;').replaceAll('<', '&lt;');
     return `<template data-software-license="${component}"><pre>${text}</pre></template>`;
   }));

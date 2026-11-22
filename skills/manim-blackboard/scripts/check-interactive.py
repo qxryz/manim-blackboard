@@ -1,15 +1,9 @@
-# /// script
-# requires-python = ">=3.10"
-# dependencies = ["playwright==1.65.2"]
-# ///
 """Check a generated interactive SVG lesson from its standalone HTML file."""
 
 import argparse
 import sys
 from pathlib import Path
 from urllib.parse import urldefrag
-
-from playwright.sync_api import Error, sync_playwright
 
 
 def require(condition, message):
@@ -299,11 +293,13 @@ def check_text_tracks(page, count, bilingual):
             base = frame
 
 def run(path, channel):
+    from playwright.sync_api import Error
+    from python_runtime import chromium_browser
+
     url = path.resolve().as_uri()
-    with sync_playwright() as engine:
-        browser = engine.chromium.launch(channel=channel, args=[
+    with chromium_browser(channel, args=[
             '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'
-        ])
+    ]) as browser:
         for label, size, touch in [('projector', (1280, 720), False), ('desktop', (1850, 929), False),
                                    ('portrait', (390, 844), True), ('landscape', (568, 320), True)]:
             context = browser.new_context(offline=True, has_touch=touch, reduced_motion='reduce',
@@ -341,7 +337,16 @@ if __name__ == '__main__':
     options = parser.parse_args()
     if not options.html.is_file():
         parser.error('HTML file does not exist')
+    sys.dont_write_bytecode = True
+    from python_runtime import RuntimeSetupError, ensure_profile
+
+    try:
+        ensure_profile('playwright', __file__)
+    except (OSError, RuntimeSetupError) as error:
+        sys.exit(f'FAIL {error}')
+    from playwright.sync_api import Error
+
     try:
         run(options.html, options.channel)
-    except (ValueError, Error) as error:
+    except (ValueError, Error, RuntimeSetupError) as error:
         sys.exit(f'FAIL {error}')

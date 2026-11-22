@@ -20,16 +20,16 @@ For a local diagram, resolve the path relative to the lesson's own `__file__`. I
 
 ## Build and inspect
 
-Install uv and the native packages required by Manim on the build machine. On macOS with Homebrew, install `cairo` and `pkg-config`. The build script pins Manim Community Edition 0.22.1. The distance starter runs without a TeX installation. Run these commands from the skill directory. [Install uv](https://docs.astral.sh/uv/getting-started/installation/) · [Manim prerequisites by operating system](https://docs.manim.community/en/stable/installation/uv.html)
+Run these commands from the skill directory with Python 3.10+ (`python3` on macOS/Linux if needed). The builder selects an interpreter with a working Manim installation or prepares a private environment. The distance starter uses no TeX. [Runtime setup](setup.md)
 
 ```sh
-uv run --python 3.12 scripts/build.py assets/starters/distance.py -o build/lesson.html
-uv run scripts/check.py build/lesson.html
+python scripts/build.py assets/starters/distance.py -o build/lesson.html
+python scripts/check.py build/lesson.html
 ```
 
 The exporter samples real Manim animations at 24 frames per second by default. Use `--fps 12` for draft builds of lengthy transitions. Static letters and shapes share stored paths across frames. To reduce a large file, simplify imported geometry and replace large groups of moving text with fixed labels before lowering the presentation frame rate.
 
-For a Manim sequence inside an interactive deck, the number-line example samples one curve and its moving dot into local geometry. Its slide imports those samples and reuses the same mark on each click. In a checkout of the examples repository, regenerate those samples from its root with `uv run examples/neural-network/weighted-motion.py`. [Manim sampling source](https://github.com/qxryz/manim-blackboard/blob/main/examples/neural-network/weighted-motion.py) · [Slide using the samples](https://github.com/qxryz/manim-blackboard/blob/main/examples/neural-network/forward.js)
+For a Manim sequence inside an interactive deck, the number-line example samples one curve and its moving dot into local geometry. Its slide imports those samples and reuses the same mark on each click. In a checkout of the examples repository, regenerate those samples from its root with `python skills/manim-blackboard/scripts/python_runtime.py manim -- examples/neural-network/weighted-motion.py`. [Manim sampling source](https://github.com/qxryz/manim-blackboard/blob/main/examples/neural-network/weighted-motion.py) · [Slide using the samples](https://github.com/qxryz/manim-blackboard/blob/main/examples/neural-network/forward.js)
 
 Open the resulting HTML locally. Advance during movement to settle at a hold, go back and replay it. For Chromium setup or an existing Chrome installation, see [Build and rehearse](../SKILL.md#build-and-rehearse).
 

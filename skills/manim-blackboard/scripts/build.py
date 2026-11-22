@@ -1,7 +1,3 @@
-# /// script
-# requires-python = ">=3.12"
-# dependencies = ["manim==0.22.1"]
-# ///
 """Build an authored Manim lesson into one offline HTML file."""
 
 from __future__ import annotations
@@ -134,10 +130,13 @@ def main():
 
     # Keep source checkouts clean when building with a directly invoked Python.
     sys.dont_write_bytecode = True
+    from python_runtime import RuntimeSetupError, ensure_profile
+
     try:
+        ensure_profile("manim", __file__)
         data = render(source, args.fps)
         write_page(player_page(data), args.output)
-    except (ValueError, OSError, TypeError, ImportError) as error:
+    except (ValueError, OSError, TypeError, ImportError, RuntimeSetupError) as error:
         parser.exit(1, f"Build failed: {error}\n")
     print(f"{args.output} · {len(data['captions'])} holds · {args.output.stat().st_size:,} bytes")
 

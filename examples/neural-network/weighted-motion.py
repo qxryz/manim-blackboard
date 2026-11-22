@@ -1,6 +1,6 @@
 # /// script
-# requires-python = ">=3.12"
-# dependencies = ["manim==0.22.1"]
+# requires-python = ">=3.11"
+# dependencies = ["manim>=0.20.1,<0.23"]
 # ///
 """Regenerate the number-line strokes, network signals, and matrix operand transfers with Manim Community Edition.
 

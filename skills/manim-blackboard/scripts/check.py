@@ -1,16 +1,9 @@
-# /// script
-# requires-python = ">=3.10"
-# dependencies = ["playwright==1.65.2"]
-# ///
 """Exercise a generated blackboard in an offline Chromium browser."""
 
 import argparse
 import sys
 from pathlib import Path
 from urllib.parse import urldefrag
-
-from playwright.sync_api import Error, sync_playwright
-
 
 class CheckFailure(Exception):
     pass
@@ -115,9 +108,11 @@ def inspect(page, touch):
 
 
 def run(path, channel):
+    from playwright.sync_api import Error
+    from python_runtime import chromium_browser
+
     url = path.resolve().as_uri()
-    with sync_playwright() as engine:
-        browser = engine.chromium.launch(channel=channel)
+    with chromium_browser(channel) as browser:
         devices = [
             ("projector", (1280, 720), False),
             ("phone portrait", (390, 844), True),
@@ -158,14 +153,20 @@ def main():
     args = parser.parse_args()
     if not args.html.is_file():
         parser.error("HTML file does not exist")
+    sys.dont_write_bytecode = True
+    from python_runtime import RuntimeSetupError, ensure_profile
+
+    try:
+        ensure_profile("playwright", __file__)
+    except (OSError, RuntimeSetupError) as error:
+        sys.exit(f"FAIL {error}")
+    from playwright.sync_api import Error
+
     try:
         run(args.html, args.channel)
-    except (Error, CheckFailure) as error:
+    except (Error, CheckFailure, RuntimeSetupError) as error:
         message = str(error).strip().splitlines()[0]
         print(f"FAIL {message}", file=sys.stderr)
-        if "Executable doesn" in message:
-            print("Install Chromium with uvx --from playwright==1.65.2 playwright install chromium "
-                  "or use --channel chrome.", file=sys.stderr)
         return 1
     return 0
 
