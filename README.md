@@ -1,4 +1,4 @@
-# Manim Blackboard
+# ![Manim Blackboard](.github/assets/manim-blackboard-banner.png)
 
 **English** · [简体中文](README.zh-CN.md)
 
