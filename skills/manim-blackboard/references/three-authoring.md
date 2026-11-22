@@ -18,11 +18,11 @@ The example samples −1, −0.8, −0.6, 0, +0.6, +0.8 and +1. At ±0.8 the rad
 
 ## Build and inspect
 
-Install the pinned dependencies once with `npm ci` from the skill root (Node.js 20+), then build the starter.
+Build the starter from the skill root with Node.js 20+. The builder checks esbuild and Three.js before installing any missing packages.
 
 ```sh
 node scripts/build-three.mjs assets/starters/quarter-turn.mjs -o build/quarter-turn.html
-uv run scripts/check-three.py build/quarter-turn.html
+python scripts/check-three.py build/quarter-turn.html
 ```
 
 Open the HTML in a browser with WebGL 2. Orbit the box and advance the tilt while the camera stays turned. For a slicing lesson, check the first tip, midpoint, matching positive and negative slices, and last tip. [Browser setup](../SKILL.md#build-and-rehearse)

@@ -1,6 +1,6 @@
 # /// script
-# requires-python = ">=3.12"
-# dependencies = ["manim==0.22.1"]
+# requires-python = ">=3.11"
+# dependencies = ["manim>=0.20.1,<0.23"]
 # ///
 """Regenerate the two native Manim cues in the neural-network opening."""
 import json

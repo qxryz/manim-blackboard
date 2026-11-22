@@ -8,12 +8,11 @@ Export `title`, `language`, `stops` and `createScene`. A stop has a `primary` ca
 
 The [square starter](../assets/starters/square.mjs) lets the audience compare a square’s side length with its area. The grid units stay fixed as the square grows. A range input and each stop feed the same drawing function.
 
-From the skill directory, install the pinned dependencies with Node.js 20 or later and build the scene. For your own scene, substitute the path to your module. The same builder and checker accept a multi-scene deck. [Browser setup](../SKILL.md#build-and-rehearse)
+From the skill directory, use Node.js 20 or later to build the scene. The builder prepares its dependencies on first use. For your own scene, substitute the path to your module. The same builder and checker accept a multi-scene deck. [Browser setup](../SKILL.md#build-and-rehearse)
 
 ```sh
-npm ci
 node scripts/build-interactive.mjs assets/starters/square.mjs -o build/square.html
-uv run scripts/check-interactive.py build/square.html
+python scripts/check-interactive.py build/square.html
 ```
 
 ## Inputs and playback

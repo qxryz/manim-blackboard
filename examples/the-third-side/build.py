@@ -1,6 +1,6 @@
 # /// script
-# requires-python = ">=3.12"
-# dependencies = ["manim==0.22.1"]
+# requires-python = ">=3.11"
+# dependencies = ["manim>=0.20.1,<0.23"]
 # ///
 """Build with Manim Blackboard, then frame the narrow diagram for portrait phones.
 

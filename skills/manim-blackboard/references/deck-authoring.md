@@ -87,7 +87,6 @@ Use one black stage for the whole sequence. Center the active drawing, place its
 - Rehearse the deck in order, then jump to the last reveal of a later slide and go backwards. Confirm that revisiting a slide creates one copy of its controls, recovers the intended values, and releases any prior WebGL context or observer. Check touch swipes starting on a slider or rotatable object preserve the current step.
 
 ```sh
-npm ci
 node scripts/build-interactive.mjs assets/starters/scale-deck.mjs -o build/course.html
-uv run scripts/check-interactive.py build/course.html
+python scripts/check-interactive.py build/course.html
 ```

@@ -1,6 +1,6 @@
 # /// script
-# requires-python = ">=3.12"
-# dependencies = ["manim==0.22.1"]
+# requires-python = ">=3.11"
+# dependencies = ["manim>=0.20.1,<0.23"]
 # ///
 """Bake the three value-vector operations. From the repository root, run uv run examples/neural-network/mixture-manim.py."""
 import json

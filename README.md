@@ -10,13 +10,16 @@ Manim Blackboard is a skill you can install in any AI coding assistant that supp
 Install the manim-blackboard skill from https://github.com/qxryz/manim-blackboard in the current project for your use, then verify that you can invoke it here.
 ```
 
-To install it yourself, run this command in your project directory.
+For a project installation, run these commands with Git and Node.js 20 or later. Choose a target recognized by your assistant.
 
 ```sh
-npx skills add qxryz/manim-blackboard --skill manim-blackboard
+git clone https://github.com/qxryz/manim-blackboard.git
+node manim-blackboard/scripts/install.mjs --target .agents/skills/manim-blackboard
 ```
 
-Choose your assistant when prompted. Try this lesson prompt.
+To update, run `git -C manim-blackboard pull --ff-only` and repeat the installer command. It checks existing tools, prepares missing dependencies inside the installed skill and writes a local report on every run. Open `.manim-blackboard/install-report.md` in the installed folder for the selected versions and paths. [Modes, restore and other installation methods](skills/manim-blackboard/references/setup.md)
+
+Try this lesson prompt.
 
 > Use Manim Blackboard to show why the first n odd numbers add up to n². Add an L-shaped strip of tiles with each click. Include English and Chinese captions.
 

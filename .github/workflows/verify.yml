@@ -1,0 +1,75 @@
+name: Verify Blackboard runtimes
+
+on:
+  pull_request:
+    paths:
+      - 'skills/manim-blackboard/**'
+      - 'scripts/**'
+      - '.github/scripts/**'
+      - '.github/workflows/verify.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'skills/manim-blackboard/**'
+      - 'scripts/**'
+      - '.github/scripts/**'
+      - '.github/workflows/verify.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  runtime:
+    name: Install, build and check on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            arch: x64
+          - os: macos-26
+            arch: arm64
+          - os: windows-2025
+            arch: x64
+          - os: windows-11-arm
+            arch: arm64
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '24'
+          architecture: ${{ matrix.arch }}
+          package-manager-cache: false
+
+      - uses: actions/setup-python@v7.1.0
+        with:
+          python-version: '3.12'
+          architecture: ${{ matrix.arch }}
+
+      - name: Install Cairo and Pango development libraries on Ubuntu
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes libcairo2-dev libpango1.0-dev pkg-config
+
+      - name: Install Cairo and Pango development libraries on macOS
+        if: runner.os == 'macOS'
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: '1'
+        run: brew install cairo pango pkg-config
+
+      - name: Exercise first run, update, offline reuse and restore
+        env:
+          PYTHONUTF8: '1'
+        run: python .github/scripts/runtime-smoke.py

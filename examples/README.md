@@ -22,18 +22,17 @@ Each folder includes the playable `index.html`, its `preview.webp` and the sourc
 Run these commands from the repository root. JavaScript lessons use Node.js 20 or later. 以下命令均从仓库根目录运行，JavaScript 课件需要 Node.js 20 或更新版本。
 
 ```sh
-npm ci --prefix skills/manim-blackboard
 node skills/manim-blackboard/scripts/build-three.mjs examples/holonomy/lesson.js -o build/holonomy.html
 node skills/manim-blackboard/scripts/build-interactive.mjs examples/unit-circle/lesson.js -o build/unit-circle.html
 ```
 
 To rebuild a different JavaScript lesson, use the source and builder in its row above, and choose an output filename. 构建其他 JavaScript 示例时，按表格选择构建器与源码，再指定输出文件。
 
-Manim lessons use uv and Manim’s native dependencies. 安装 uv 和 Manim 的系统依赖后，可以构建下列两份课件。[Manim setup · 环境配置](../skills/manim-blackboard/references/authoring.md#build-and-inspect)
+The Manim builder prepares its Python environment on first run. 首次构建时会检测并准备 Manim 环境。[Manim setup · 环境配置](../skills/manim-blackboard/references/authoring.md#build-and-inspect)
 
 ```sh
-uv run --python 3.12 skills/manim-blackboard/scripts/build.py examples/derivative/lesson.py -o build/derivative.html
-uv run --python 3.12 examples/the-third-side/build.py -o build/the-third-side.html
+python skills/manim-blackboard/scripts/build.py examples/derivative/lesson.py -o build/derivative.html
+python examples/the-third-side/build.py -o build/the-third-side.html
 ```
 
-If you edit the spherical transport path, run `uv run --python 3.12 examples/holonomy/transport_manim.py` to regenerate its motion samples before rebuilding. 修改球面平行移动的路径后，先用这条命令重新采样，再构建课件。
+If you edit the spherical transport path, run `python skills/manim-blackboard/scripts/python_runtime.py manim -- examples/holonomy/transport_manim.py` to regenerate its motion samples before rebuilding. 修改球面平行移动的路径后，先用这条命令重新采样，再构建课件。
