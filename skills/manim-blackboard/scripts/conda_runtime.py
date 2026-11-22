@@ -39,10 +39,8 @@ def _conda_root(skill_root: Path) -> Path:
     return skill_root.resolve() / ".manim-blackboard" / "conda"
 
 
-def _environment_python(root: Path, generation: str, kind: str) -> Path:
-    parent = root / "envs" / generation
-    prefix = parent / "project" / ".pixi" / "envs" / "default" if kind == "pixi" else parent / "environment"
-    return prefix / "bin" / "python"
+def _pixi_python(generation: Path) -> Path:
+    return generation / "project" / ".pixi" / "envs" / "default" / "bin" / "python"
 
 
 def conda_manim_python(skill_root: Path) -> Path:
@@ -54,10 +52,10 @@ def conda_manim_python(skill_root: Path) -> Path:
         generation = ""
     if not re.fullmatch(r"manim-[A-Za-z0-9_-]+", generation):
         generation = "unavailable"
-    conda_python = _environment_python(root, generation, "conda")
-    if conda_python.is_file():
-        return conda_python
-    return _environment_python(root, generation, "pixi")
+    directory = root / "envs" / generation
+    # Older setups may already have a usable interpreter created by conda.
+    legacy = directory / "environment" / "bin" / "python"
+    return legacy if legacy.is_file() else _pixi_python(directory)
 
 
 def _run(argv, env, timeout):
@@ -73,23 +71,11 @@ def _output(argv, env):
     return result.stdout.strip() if result.returncode == 0 else ""
 
 
-def _config_environment(root, inherited):
-    for directory in ("pkgs", "envs", "tmp", "xdg-cache", "pixi-cache", "pixi-home"):
+def _pixi_environment(root, inherited):
+    for directory in ("envs", "tmp", "xdg-cache", "pixi-cache", "pixi-home"):
         (root / directory).mkdir(parents=True, exist_ok=True)
-    config = root / "condarc"
-    _write_atomically(config, "register_envs: false\n")
     env = {
         **inherited,
-        "MAMBA_ROOT_PREFIX": str(root),
-        "CONDA_ROOT_PREFIX": str(root),
-        "CONDA_PKGS_DIRS": str(root / "pkgs"),
-        "CONDA_ENVS_PATH": str(root / "envs"),
-        "CONDARC": str(config),
-        "CONDA_REGISTER_ENVS": "false",
-        "MAMBA_REGISTER_ENVS": "false",
-        "CONDA_ADD_ANACONDA_TOKEN": "false",
-        "CONDA_NOTIFY_OUTDATED_CONDA": "false",
-        "CONDA_REPORT_ERRORS": "false",
         "TMPDIR": str(root / "tmp"),
         "XDG_CACHE_HOME": str(root / "xdg-cache"),
         "PIXI_CACHE_DIR": str(root / "pixi-cache"),
@@ -103,27 +89,12 @@ def _config_environment(root, inherited):
     return env
 
 
-def _manager_argv(executable, kind, env):
-    if kind == "micromamba":
-        return [executable, f"--rc-file={env['CONDARC']}"]
-    return [executable]
-
-
-def _manager_version(executable, kind, env):
-    if not executable:
-        return None
-    match = re.search(r"\b\d+(?:\.\d+){1,3}\b", _output([executable, "--version"], env))
+def _pixi_version(executable, env):
+    match = re.search(r"\bpixi\s+(\d+(?:\.\d+){1,3})\b", _output([executable, "--version"], env))
     if not match:
         return None
-    if kind == "pixi":
-        help_text = _output([executable, "install", "--help"], env)
-        return match.group() if "--no-config" in help_text and "--manifest-path" in help_text else None
-    command = _manager_argv(executable, kind, env)
-    query = ["list"] if kind == "micromamba" else ["--show", "register_envs"]
-    config = _output([*command, "config", *query], env)
-    if re.search(r"(?im)^\s*register_envs:\s*false\s*$", config):
-        return match.group()
-    return None
+    help_text = _output([executable, "install", "--help"], env)
+    return match.group(1) if "--no-config" in help_text and "--manifest-path" in help_text else None
 
 
 def _verified_binary(binary: Path, expected: str) -> bool:
@@ -168,30 +139,24 @@ def _download_pixi(binary: Path, asset: str, archive_digest: str, executable_dig
                 temporary.unlink(missing_ok=True)
 
 
-def _select_manager(root, env, subdir):
-    path = env.get("PATH")
-    configured_conda = env.get("CONDA_EXE")
-    candidates = ((shutil.which("micromamba", path=path), "micromamba"),
-                  (shutil.which(configured_conda, path=path) if configured_conda else None, "conda"),
-                  (shutil.which("conda", path=path), "conda"),
-                  (shutil.which("pixi", path=path), "pixi"))
-    for executable, kind in dict.fromkeys(candidates):
-        version = _manager_version(executable, kind, env)
+def _select_pixi(root, env, subdir):
+    if executable := shutil.which("pixi", path=env.get("PATH")):
+        version = _pixi_version(executable, env)
         if version:
-            return Path(executable).resolve(), kind, version, "existing installation"
+            return Path(executable).resolve(), version, "existing installation"
     asset = ASSETS.get(subdir)
     if not asset:
         raise RuntimeError(f"No portable Pixi release is available for {subdir}.")
     cache_binary = root / "bin" / f"pixi-{RELEASE}-{asset[0]}"
     if _verified_binary(cache_binary, asset[2]):
-        version = _manager_version(cache_binary, "pixi", env)
+        version = _pixi_version(cache_binary, env)
         if version:
-            return cache_binary, "pixi", version, "managed runtime"
+            return cache_binary, version, "managed runtime"
     _download_pixi(cache_binary, *asset)
-    version = _manager_version(cache_binary, "pixi", env)
+    version = _pixi_version(cache_binary, env)
     if not version:
         raise RuntimeError("The verified Pixi executable could not run on this host.")
-    return cache_binary, "pixi", version, "official GitHub release"
+    return cache_binary, version, "official GitHub release"
 
 
 def _write_atomically(path, content):
@@ -204,33 +169,27 @@ def _write_atomically(path, content):
         temporary.unlink(missing_ok=True)
 
 
-def _record_manager(env, executable, kind, version, source):
+def _record_pixi(env, executable, version, source):
     if report_path := env.get("MANIM_BLACKBOARD_REPORT_DIR"):
         folder = Path(report_path)
         folder.mkdir(parents=True, exist_ok=True)
         action = "installed" if source == "official GitHub release" else "reused"
-        fact = {"name": kind, "version": version, "path": str(executable), "action": action, "source": source}
+        fact = {"name": "pixi", "version": version, "path": str(executable), "action": action, "source": source}
         _write_atomically(folder / "conda.json", json.dumps([fact], indent=2) + "\n")
 
 
-def _install_command(executable, kind, generation, prefix, subdir, min_python, manim_spec, env):
-    if kind == "pixi":
-        project = generation / "project"
-        project.mkdir()
-        manifest = project / "pixi.toml"
-        manifest.write_text(
-            "[workspace]\nname = 'manim-blackboard-native'\n"
-            f"channels = [{json.dumps(CONDA_FORGE)}]\nplatforms = [{json.dumps(subdir)}]\n"
-            "[dependencies]\n"
-            f"python = {json.dumps(min_python + '.*')}\nmanim = {json.dumps(manim_spec.removeprefix('manim'))}\n",
-            encoding="utf-8",
-        )
-        return [executable, "install", "--no-config", "--manifest-path", str(manifest)]
-    command = _manager_argv(executable, kind, env)
-    command += ["create", "--yes", "--prefix", str(prefix), "--override-channels", "--channel", CONDA_FORGE]
-    if kind == "conda":
-        command += ["--no-default-packages"]
-    return command + [f"python={min_python}", manim_spec]
+def _write_project(generation, subdir, min_python, manim_spec):
+    project = generation / "project"
+    project.mkdir()
+    manifest = project / "pixi.toml"
+    manifest.write_text(
+        "[workspace]\nname = 'manim-blackboard-native'\n"
+        f"channels = [{json.dumps(CONDA_FORGE)}]\nplatforms = [{json.dumps(subdir)}]\n"
+        "[dependencies]\n"
+        f"python = {json.dumps(min_python + '.*')}\nmanim = {json.dumps(manim_spec.removeprefix('manim'))}\n",
+        encoding="utf-8",
+    )
+    return manifest
 
 
 def prepare_conda_manim(skill_root: Path, *, min_python="3.12", manim_spec="manim>=0.20.1,<0.23",
@@ -244,36 +203,37 @@ def prepare_conda_manim(skill_root: Path, *, min_python="3.12", manim_spec="mani
         raise RuntimeError(f"No conda-forge native Manim setup is available for {system} {machine}.")
 
     root = _conda_root(skill_root)
-    print(f"Checking the private Cairo/Pango runtime and environment managers\nManaged runtime directory {root}",
+    print(f"Checking the private Cairo/Pango runtime and Pixi\nManaged runtime directory {root}",
           file=sys.stderr, flush=True)
     existing = conda_manim_python(skill_root)
     if existing.is_file() and probe(existing):
         return existing
 
     try:
-        environ = _config_environment(root, os.environ if env is None else env)
-        executable, kind, version, source = _select_manager(root, environ, subdir)
-        _record_manager(environ, executable, kind, version, source)
+        environ = _pixi_environment(root, os.environ if env is None else env)
+        executable, version, source = _select_pixi(root, environ, subdir)
+        _record_pixi(environ, executable, version, source)
         generation = Path(tempfile.mkdtemp(prefix="manim-", dir=root / "envs"))
     except OSError as error:
         raise RuntimeError("Could not prepare the private conda-forge runtime directory.") from error
-    python = _environment_python(root, generation.name, kind)
+    python = _pixi_python(generation)
     prefix = python.parent.parent
     ready = False
     try:
-        command = _install_command(executable, kind, generation, prefix, subdir, min_python, manim_spec, environ)
+        manifest = _write_project(generation, subdir, min_python, manim_spec)
+        command = [executable, "install", "--no-config", "--manifest-path", str(manifest)]
         print(f"Installing Python, Manim, Cairo, and Pango from conda-forge using {executable}\nInstall directory {prefix}",
               file=sys.stderr, flush=True)
         result = _run(command, environ, timeout=900)
         if result.returncode:
-            raise RuntimeError(f"{kind} could not resolve or install the conda-forge runtime (exit {result.returncode}).")
+            raise RuntimeError(f"Pixi could not resolve or install the conda-forge runtime (exit {result.returncode}).")
         if not python.is_file() or not probe(python):
             raise RuntimeError("The conda-forge environment did not pass the Manim import check.")
         _write_atomically(root / "active-env", generation.name + "\n")
         ready = True
         return python
     except (OSError, subprocess.TimeoutExpired) as error:
-        raise RuntimeError(f"{kind} could not finish the local conda-forge setup.") from error
+        raise RuntimeError("Pixi could not finish the local conda-forge setup.") from error
     finally:
         if not ready and generation.resolve().parent == (root / "envs").resolve():
             shutil.rmtree(generation, ignore_errors=True)

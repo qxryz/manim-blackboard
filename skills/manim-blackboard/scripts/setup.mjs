@@ -10,7 +10,7 @@ const scripts = dirname(fileURLToPath(import.meta.url));
 const runtime = join(scripts, '..', '.manim-blackboard');
 const windows = process.platform === 'win32';
 const pythonProbe = 'import sys; sys.exit(sys.version_info < (3, 10))';
-const usage = 'node scripts/setup.mjs [all|manim|check|interactive|three]';
+const usage = 'node scripts/setup.mjs [all|manim|check|interactive|three] or node scripts/setup.mjs run-python SCRIPT [ARGS...]';
 const roles = {
   node: 'Runs the builders and installer', npm: 'Installs JavaScript packages',
   esbuild: 'Bundles the player and lesson into an offline HTML file', three: 'Renders interactive 3D scenes',
@@ -86,21 +86,34 @@ async function findUv() {
 
 async function findPython(env) {
   const candidates = windows ? [['python'], ['py', '-3'], ['python3']] : [['python3'], ['python']];
+  for (const profile of ['manim', 'playwright']) {
+    candidates.push([join(runtime, profile, windows ? 'Scripts/python.exe' : 'bin/python')]);
+  }
   for (const [program, ...args] of candidates) {
     if (spawnSync(program, [...args, '-c', pythonProbe], { stdio: 'ignore', timeout: 10000 }).status === 0) return [program, ...args];
   }
   const uv = await findUv();
   if (uv !== 'uv') env.PATH = dirname(uv) + delimiter + (env.PATH || '');
   Object.assign(env, { UV_CACHE_DIR: join(runtime, 'uv-cache'), UV_PYTHON_INSTALL_DIR: join(runtime, 'interpreters'), UV_PYTHON_BIN_DIR: join(runtime, 'bin') });
+  const lookup = ['python', 'find', '--managed-python', '--no-python-downloads', '3.12'];
+  const cached = spawnSync(uv, lookup, { env, encoding:'utf8' });
+  if (cached.status === 0) return [cached.stdout.trim()];
   console.error(`Preparing managed Python 3.12 in ${env.UV_PYTHON_INSTALL_DIR}`);
   run(uv, ['python', 'install', '--no-bin', ...(windows ? ['--no-registry'] : []), '3.12'], { env });
-  const result = run(uv, ['python', 'find', '--managed-python', '3.12'], { env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] });
+  const result = run(uv, lookup, { env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] });
   return [result.stdout.trim()];
 }
 
 async function main() {
   const [mode = 'all', ...rest] = process.argv.slice(2);
   if (mode === '--help' || mode === '-h') { console.log(usage); return; }
+  if (mode === 'run-python' && rest.length) {
+    console.error(`Checking Python for the requested script. Private runtime: ${runtime}`);
+    const env = { ...process.env };
+    const [python, ...args] = await findPython(env);
+    run(python, [...args, ...rest], {env});
+    return;
+  }
   if (mode === '--ensure-uv' && !rest.length) {
     console.error(`Checking for uv. A missing copy will be installed into ${join(runtime, 'bin')}`);
     console.log(await findUv());

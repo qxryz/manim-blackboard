@@ -55,7 +55,7 @@ def build_and_check(target, parent, env):
         run(runtime, Path("scripts") / builder, Path("assets/starters") / starter,
             "-o", output, cwd=target, env=env)
         require(output.is_file() and output.stat().st_size > 0, f"No {mode} HTML was built")
-        run(sys.executable, Path("scripts") / checker, output, cwd=target, env=env)
+        run("node", Path("scripts") / "setup.mjs", "run-python", Path("scripts") / checker, output, cwd=target, env=env)
 
 
 def check_install_report(report, expected):
