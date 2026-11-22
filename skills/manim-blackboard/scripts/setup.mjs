@@ -18,7 +18,7 @@ const roles = {
   playwright: 'Drives the offline playback checks', chromium: 'Plays the lesson during verification',
   'google chrome': 'Plays the lesson during verification', 'microsoft edge': 'Plays the lesson during verification',
   uv: 'Provisions private Python runtimes', pip: 'Installs Python packages',
-  micromamba: 'Provides native Manim libraries', conda: 'Provides native Manim libraries',
+  pixi: 'Provides native Manim libraries', micromamba: 'Provides native Manim libraries', conda: 'Provides native Manim libraries',
 };
 
 function run(program, args, options = {}) {
@@ -45,7 +45,8 @@ async function findUv() {
   const executable = windows ? 'uv.exe' : 'uv';
   const local = join(bin, executable);
   for (const candidate of ['uv', local]) {
-    if (spawnSync(candidate, ['--version'], { stdio: 'ignore' }).status === 0) return candidate;
+    const help = spawnSync(candidate, ['python', 'install', '--help'], { encoding: 'utf8', timeout: 10000 });
+    if (help.status === 0 && help.stdout.includes('--no-bin') && (!windows || help.stdout.includes('--no-registry'))) return candidate;
   }
   const asset = archives[`${process.platform}:${process.arch}`];
   if (!asset) throw new Error('Install Python 3.10+ or uv for this platform, then retry.');
@@ -86,7 +87,7 @@ async function findUv() {
 async function findPython(env) {
   const candidates = windows ? [['python'], ['py', '-3'], ['python3']] : [['python3'], ['python']];
   for (const [program, ...args] of candidates) {
-    if (spawnSync(program, [...args, '-c', pythonProbe], { stdio: 'ignore' }).status === 0) return [program, ...args];
+    if (spawnSync(program, [...args, '-c', pythonProbe], { stdio: 'ignore', timeout: 10000 }).status === 0) return [program, ...args];
   }
   const uv = await findUv();
   if (uv !== 'uv') env.PATH = dirname(uv) + delimiter + (env.PATH || '');
@@ -138,11 +139,12 @@ async function main() {
       }
     }
     const summary = [
-      '# Manim Blackboard installation report', '',
+      '# Manim Blackboard installation report · 安装报告', '',
       `- Time (UTC): ${new Date().toISOString()}`, `- Operation: ${env.MANIM_BLACKBOARD_OPERATION || 'setup'} (${mode})`,
       `- Platform: ${process.platform} / ${process.arch}`, `- Private directory: ${runtime}`,
       `- Result: ${failures.length ? 'incomplete — ' + failures.join(', ') : 'success'}`, '',
-      '| Dependency | Version | Action | Path | Source | Purpose |', '| --- | --- | --- | --- | --- | --- |',
+      '“reused” 表示本次复用，“installed” 表示本次安装。', '',
+      '| Dependency / 依赖 | Version / 版本 | Action / 结果 | Path / 路径 | Source / 来源 | Purpose / 用途 |', '| --- | --- | --- | --- | --- | --- |',
       ...Array.from(rows.values(), row => `| ${row} |`), '',
       `Restore with: node "${join(scripts, 'restore.mjs')}"`, '',
     ];

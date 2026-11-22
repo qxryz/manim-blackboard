@@ -1,10 +1,17 @@
 /** File ownership and undo records for the repository installer. */
 import { createHash, randomUUID } from 'node:crypto';
-import { lstat, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { chmod, lstat, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 
 export const runtimeName = '.manim-blackboard';
 export const hash = bytes => createHash('sha256').update(bytes).digest('hex');
+const packageDirectories = new Set(['assets', 'licenses', 'references', 'scripts']);
+const packageFiles = new Set(['LICENSE', 'SKILL.md', 'package.json', 'package-lock.json', 'restore.cmd', 'restore.command']);
+export function requirePackagePath(name) {
+  if (typeof name !== 'string' || !(packageFiles.has(name) || (name.includes('/') && packageDirectories.has(name.split('/')[0])))) {
+    throw new Error('Invalid managed package path');
+  }
+}
 export async function readOptional(path) {
   try { return await readFile(path); }
   catch (error) { if (error.code !== 'ENOENT') throw error; return null; }
@@ -40,11 +47,9 @@ export async function withInstallLock(root, work) {
 
 export async function undoFiles(root, record) {
   const actions = [];
-  for (const { name, before, after } of record.changes) {
+  for (const { name, before, after, mode } of record.changes) {
+    requirePackagePath(name);
     const path = await safeFile(root, name);
-    const top = name.split('/')[0];
-    if (!['assets', 'licenses', 'references', 'scripts'].includes(top) &&
-        !['LICENSE', 'SKILL.md', 'package.json', 'package-lock.json', 'restore.cmd', 'restore.command'].includes(name)) throw new Error('Invalid undo path');
     const bytes = await readOptional(path);
     const actual = bytes && hash(bytes);
     if (actual === before) continue;
@@ -55,10 +60,13 @@ export async function undoFiles(root, record) {
       previous = await readFile(await safeFile(root, `${runtimeName}/backups/${before}`));
       if (hash(previous) !== before) throw new Error(`Damaged backup for ${name}`);
     }
-    actions.push({ path, previous });
+    actions.push({ path, previous, mode });
   }
-  for (const { path, previous } of actions) {
-    if (previous) await atomicWrite(path, previous);
+  for (const { path, previous, mode } of actions) {
+    if (previous) {
+      await atomicWrite(path, previous);
+      if (process.platform !== 'win32' && Number.isInteger(mode)) await chmod(path, mode & 0o777);
+    }
     else await rm(path);
   }
 }

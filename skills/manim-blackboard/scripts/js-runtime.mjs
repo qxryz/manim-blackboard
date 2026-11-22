@@ -1,7 +1,7 @@
 /** Find a working JavaScript toolchain before installing a skill-local copy. */
 import { spawn } from 'node:child_process';
 import { constants, realpathSync } from 'node:fs';
-import { access, mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
+import { access, mkdir, mkdtemp, readFile, readdir, realpath, rm, stat, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { delimiter, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -88,11 +88,15 @@ async function packageInfo(name, entry) {
   throw new Error(`Could not locate the ${name} package manifest.`);
 }
 
+function isInside(root, target) {
+  const path = relative(root, target);
+  return path !== '' && !isAbsolute(path) && path.split(sep)[0] !== '..';
+}
+
 async function recordPackage(name, entry, action) {
   if (!reportDir) return;
   const { folder, version } = await packageInfo(name, entry);
-  const localPath = relative(managedRoot, folder);
-  const local = !isAbsolute(localPath) && localPath.split(sep)[0] !== '..';
+  const local = isInside(managedRoot, folder);
   const source = action === 'installed' ? 'npm registry' : local ? 'managed runtime' : 'existing installation';
   await record(name, version, folder, action, source);
 }
@@ -118,6 +122,15 @@ async function* resolutionPaths(name, source) {
   yield import.meta.url;
   if (source) yield source;
   for (const directory of await managedDirectories(name)) yield join(directory, 'package.json');
+  // npm's global prefix is not necessarily on Node's module resolution path.
+  // Query it only after the project's and the skill's packages were tried.
+  let modules;
+  try {
+    modules = await runNpm(['root', '--global'], root, true);
+  } catch {
+    return;
+  }
+  if (isAbsolute(modules)) yield join(dirname(modules), 'package.json');
 }
 
 async function ensurePackage(name, probe, source) {
@@ -156,7 +169,10 @@ async function ensurePackage(name, probe, source) {
     // completed directory and let subsequent builds discover it in place.
     await writeFile(join(directory, 'ready'), name);
   } catch (error) {
-    await rm(directory, { recursive: true, force: true }).catch(() => {});
+    const [parent, target] = await Promise.all([realpath(runtime), realpath(directory)]).catch(() => []);
+    if (parent && target && isInside(parent, target)) {
+      await rm(target, { recursive: true, force: true }).catch(() => {});
+    }
     throw new Error(`Could not prepare ${name} ${version}: ${error.message}`, { cause: error });
   }
   await recordPackage(name, entry, 'installed');

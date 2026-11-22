@@ -1,10 +1,10 @@
 /** Install from a checkout without copying its development files or dependency cache. */
 import { execFileSync, spawnSync } from 'node:child_process';
-import { chmod, mkdir, realpath, readdir, rm } from 'node:fs/promises';
+import { chmod, mkdir, realpath, readdir, rm, stat } from 'node:fs/promises';
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
-import { atomicWrite, hash, readOptional, runtimeName, safeFile, undoFiles, withInstallLock } from '../skills/manim-blackboard/scripts/install-state.mjs';
+import { atomicWrite, hash, readOptional, requirePackagePath, runtimeName, safeFile, undoFiles, withInstallLock } from '../skills/manim-blackboard/scripts/install-state.mjs';
 
 const repo = dirname(dirname(fileURLToPath(import.meta.url)));
 const prefix = 'skills/manim-blackboard/';
@@ -44,6 +44,7 @@ async function install() {
     const changes = [];
     const payloads = new Map();
     for (const name of new Set([...names, ...(state?.files || [])])) {
+      requirePackagePath(name);
       const target = await safeFile(root, name);
       const beforeBytes = await readOptional(target);
       const afterBytes = newNames.has(name) ? await readOptional(await safeFile(skillSource, name)) : null;
@@ -51,8 +52,8 @@ async function install() {
       const before = beforeBytes && hash(beforeBytes);
       const after = afterBytes && hash(afterBytes);
       if (before === after) continue;
-      if (beforeBytes) await atomicWrite(join(local, 'backups', before), beforeBytes);
-      changes.push({ name, before, after });
+      if (beforeBytes) await atomicWrite(await safeFile(root, `${runtimeName}/backups/${before}`), beforeBytes);
+      changes.push({ name, before, after, mode: beforeBytes ? (await stat(target)).mode & 0o777 : null });
       payloads.set(target, afterBytes);
     }
     if (changes.length) {

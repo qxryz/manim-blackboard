@@ -57,6 +57,9 @@ jobs:
           python-version: '3.12'
           architecture: ${{ matrix.arch }}
 
+      - name: Verify index selection and mirror fallback
+        run: python -B .github/scripts/python-runtime-tests.py
+
       - name: Install Cairo and Pango development libraries on Ubuntu
         if: runner.os == 'Linux'
         run: |
@@ -73,3 +76,19 @@ jobs:
         env:
           PYTHONUTF8: '1'
         run: python .github/scripts/runtime-smoke.py
+
+  conda-fallback:
+    name: Build using private Cairo and Pango on Ubuntu
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v7.1.0
+        with:
+          python-version: '3.12'
+
+      - name: Force missing system libraries and verify the private fallback
+        run: python -B .github/scripts/conda-smoke.py

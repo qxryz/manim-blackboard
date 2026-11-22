@@ -63,6 +63,15 @@ def query(command, env=None):
     return result.stdout.strip() if result.returncode == 0 else ""
 
 
+def probe(python, code, *arguments):
+    # Initialize site after dropping the implicit working-directory entry, so
+    # Python 3.10 also keeps its configured user site without importing from cwd.
+    env = os.environ.copy()
+    env.pop("PYTHONPATH", None)
+    prelude = "import sys\nif sys.path[:1] == ['']:\n    sys.path.pop(0)\nimport site\nsite.main()\n"
+    return query([python, "-B", "-S", "-c", prelude + code, *arguments], env)
+
+
 def usable(python, name):
     _, minimum_python, minimum, maximum, imports = PROFILES[name]
     code = (
@@ -72,7 +81,7 @@ def usable(python, name):
         f"assert release and {minimum!r} <= tuple(map(int, release.groups())) < {maximum!r}; "
         f"{imports}; print('ready')"
     )
-    return query([python, "-I", "-B", "-c", code]).endswith("ready")
+    return probe(python, code).endswith("ready")
 
 
 def venv_python(directory):
@@ -170,6 +179,19 @@ def local_uv(env):
     return path if result.returncode == 0 and path and Path(path).is_file() else None
 
 
+def record_uv(name, uv, installed=False):
+    if not os.environ.get(REPORT_SETTING):
+        return
+    binary = Path(shutil.which(uv) or uv).resolve()
+    result = query([binary, "--version"])
+    if result.startswith("uv ") and binary.is_file():
+        write_facts(name, [{
+            "name": "uv", "version": result.split()[1], "path": str(binary),
+            "action": "installed" if installed else "reused",
+            "source": "Astral GitHub Releases" if binary.is_relative_to(CACHE) else "Existing uv installation",
+        }])
+
+
 def base_python(name, candidates, uv, env, x64):
     minimum = PROFILES[name][1]
     for python in candidates:
@@ -177,7 +199,10 @@ def base_python(name, candidates, uv, env, x64):
         if minimum <= tuple(version) < (3, 15) and (not x64 or platform == "win-amd64"):
             return python, uv, False
     if not uv and x64:
+        already_available = (CACHE / "bin" / "uv.exe").is_file()
         uv = local_uv(env)
+        if uv:
+            record_uv(name, uv, installed=not already_available)
     if uv:
         managed_env = env.copy()
         managed_env["UV_PYTHON_INSTALL_DIR"] = str(CACHE / "interpreters")
@@ -221,16 +246,49 @@ def public_mirrors():
 
 def configured_pip(python, env):
     settings = query([python, "-m", "pip", "config", "list"], env)
-    keys = {line.partition("=")[0].split(".")[-1] for line in settings.splitlines()}
-    if keys.intersection({"target", "prefix", "root", "user", "python"}):
-        raise RuntimeSetupError("pip is configured to override the install destination. Use standard venv settings for local setup.")
-    return bool(env.get("PIP_CONFIG_FILE")) or any(
-        f"PIP_{setting.upper().replace('-', '_')}" in env for setting in PIP_SOURCE_SETTINGS
-    ) or bool(keys.intersection(PIP_SOURCE_SETTINGS))
+    configured = bool(env.get("PIP_CONFIG_FILE"))
+    for line in settings.splitlines():
+        setting, _, value = line.partition("=")
+        key = setting.split(".")[-1]
+        value = value.strip().strip("\"'")
+        if key in ("target", "prefix", "root", "python") or key == "user" and value.lower() in ("1", "true", "yes"):
+            raise RuntimeSetupError("pip is configured to override the install destination. Use standard venv settings for local setup.")
+        configured = configured or key in PIP_SOURCE_SETTINGS and not (key == "index-url" and value.rstrip("/") == PYPI)
+    for key in PIP_SOURCE_SETTINGS:
+        value = env.get(f"PIP_{key.upper().replace('-', '_')}")
+        configured = configured or value is not None and not (key == "index-url" and value.rstrip("/") == PYPI)
+    return configured
+
+
+def uv_settings(path):
+    scope = "tool.uv" if path.name == "pyproject.toml" else ""
+    pip_scope = f"{scope}.pip" if scope else "pip"
+    index_scope = f"{scope}.index" if scope else "index"
+    section = ""
+    sourced = False
+    redirects = False
+    sources = {"index", "index-url", "extra-index-url", "default-index", "find-links", "no-index", "allow-insecure-host"}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        section_header = re.match(r"\s*\[\[?([^\[\]]+)\]\]?", line)
+        if section_header:
+            section = section_header[1].strip().replace('"', "").replace("'", "")
+            sourced = sourced or section == index_scope
+        elif section in (scope, pip_scope):
+            assignment = re.match(r"\s*([\w-]+)\s*=\s*([^#]*)", line)
+            if assignment:
+                key, value = assignment.groups()
+                public = key in ("index-url", "default-index") and value.strip().strip("\"'").rstrip("/") == PYPI
+                sourced = sourced or key in sources and not public
+                redirects = redirects or (section == pip_scope and (
+                    key in ("target", "prefix") or key == "system" and value.strip() == "true"
+                ))
+    return sourced, redirects
 
 
 def configured_uv(env):
-    configured = bool(UV_SOURCE_SETTINGS.intersection(env)) or any(key.startswith("UV_INDEX_") for key in env)
+    settings = UV_SOURCE_SETTINGS.intersection(env)
+    settings = {key for key in settings if key not in ("UV_INDEX_URL", "UV_DEFAULT_INDEX") or env[key].rstrip("/") != PYPI}
+    configured = bool(settings) or any(key.startswith("UV_INDEX_") and key not in UV_SOURCE_SETTINGS for key in env)
     # uv also discovers project, user and system configuration. Detect index
     # settings there without reading any configured values into output.
     config_home = Path(env.get("APPDATA") or env.get("XDG_CONFIG_HOME") or Path.home() / ".config")
@@ -242,14 +300,12 @@ def configured_uv(env):
         files.append(Path(env["UV_CONFIG_FILE"]))
     for directory in (Path.cwd(), *Path.cwd().parents):
         files.extend((directory / "pyproject.toml", directory / "uv.toml"))
-    pattern = re.compile(r"(?m)^\s*(?:\[\[(?:tool\.uv\.)?index\]\]|(?:index-url|extra-index-url|"
-                         r"index|default-index|find-links|no-index|allow-insecure-host)\s*=)")
     for path in files:
         if path.is_file():
-            text = path.read_text(encoding="utf-8")
-            if re.search(r"(?m)^\s*(?:system|target|prefix)\s*=", text):
+            sourced, redirects = uv_settings(path)
+            if redirects:
                 raise RuntimeSetupError("uv is configured to override the install destination. Use standard venv settings for local setup.")
-            configured = configured or bool(pattern.search(text))
+            configured = configured or sourced
     return configured
 
 
@@ -260,6 +316,8 @@ def install_packages(name, command, env, configured):
         attempt_env = env.copy()
         options = []
         if url:
+            for key in ("UV_INDEX_URL", "UV_DEFAULT_INDEX"):
+                attempt_env.pop(key, None)
             options = ["--index-url", url]
         if index:
             print(f"Installing {name} from public Python package mirror {index} into {CACHE / name}.",
@@ -309,7 +367,7 @@ def record_python(name, python, package_source=None, installed_python=False, nat
                 "from importlib.util import find_spec; name = sys.argv[1]; "
                 "print(json.dumps([platform.python_version(), sys.executable, sys._base_executable, "
                 "version(name), find_spec(name).origin]))")
-        result = query([python, "-I", "-B", "-c", code, name])
+        result = probe(python, code, name)
         if result:
             python_version, python_path, base_path, version, package_path = json.loads(result)
             managed = Path(base_path).is_relative_to(CACHE / "interpreters")
@@ -322,6 +380,17 @@ def record_python(name, python, package_source=None, installed_python=False, nat
                  "source": package_source or ("conda-forge" if native else "Existing Python environment")},
             ])
     return python
+
+
+def record_pip(name, python, installed):
+    if not os.environ.get(REPORT_SETTING):
+        return
+    code = "import json, pip; print(json.dumps([pip.__version__, pip.__file__]))"
+    result = query([python, "-I", "-B", "-c", code])
+    if result:
+        version, path = json.loads(result)
+        write_facts(name, [{"name": "pip", "version": version, "path": path,
+                            "action": "installed" if installed else "reused", "source": "Python venv"}])
 
 
 def select_python(name):
@@ -357,13 +426,17 @@ def select_python(name):
         use_uv = bool(uv and (uv_config or not pip_config))
         print(f"Creating the Python environment at {location}.", file=sys.stderr, flush=True)
         if use_uv:
+            record_uv(name, uv)
             setup = run([uv, "venv", "--allow-existing", "--python", python, location], env)
             command = [uv, "pip", "install", "--python", cached]
         else:
+            had_pip = cached.is_file() and bool(query([cached, "-m", "pip", "--version"]))
             setup = run([python, "-m", "venv", location], env)
             command = [cached, "-m", "pip", "install", "--retries", "1", "--timeout", "15"]
         if setup.returncode:
             raise RuntimeSetupError(f"Could not create the local {name} environment. Check Python's venv support and directory permissions.")
+        if not use_uv:
+            record_pip(name, cached, installed=not had_pip)
         package_cache = env["UV_CACHE_DIR" if use_uv else "PIP_CACHE_DIR"]
         print(f"Installing {name} into {location}. Package cache is {package_cache}.",
               file=sys.stderr, flush=True)
@@ -420,6 +493,9 @@ def record_browser(browser, channel, installed=False):
 def chromium_browser(channel=None, **launch_options):
     from playwright.sync_api import Error, sync_playwright
 
+    if os.environ.get(REPORT_SETTING):
+        # Chrome requires this switch for the CDP command that reports its executable.
+        launch_options["args"] = [*launch_options.get("args", []), "--enable-automation"]
     setting = "PLAYWRIGHT_BROWSERS_PATH"
     original = os.environ.get(setting)
     local = str(CACHE / "chromium")
